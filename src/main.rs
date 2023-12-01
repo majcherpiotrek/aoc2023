@@ -14,6 +14,21 @@ fn build_input_file_path(day: usize, part: usize) -> String {
     format!("./input_data/day_{}/part_{}", day, part)
 }
 
+fn day_one_part_one(file_content: &String) -> usize {
+    file_content.split("\n").map(|line| {
+        let nums: Vec<usize> = line.chars().map(|c| {
+            c.to_digit(10).and_then(|digit| 
+                digit.try_into().ok()
+            )
+        }).filter_map(|x| x).collect();
+        
+        match (nums.first(), nums.last()) {
+            (Some(first), Some(last)) => first * 10 + last,
+            _ => 0
+        }
+    }).fold(0, |acc, elem| acc + elem)
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let puzzle_identifier = (
@@ -26,7 +41,7 @@ fn main() {
             let path = build_input_file_path(day, part);
             let contents =
                 fs::read_to_string(path).expect("Should have been able to read the file");
-            println!("With text:\n{contents}");
+            println!("Result: {}", day_one_part_one(&contents));
         }
         _ => println!("Please specify a day and part of the puzzle, e.g --day=1 --part=1"),
     }
