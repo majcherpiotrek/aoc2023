@@ -1,4 +1,4 @@
-use regex::Regex;
+use regex::{Match, Regex, RegexSet};
 use std::env;
 use std::fs;
 
@@ -16,17 +16,26 @@ fn build_input_file_path(day: usize, part: usize) -> String {
 }
 
 fn find_candidates(str: &str) -> Vec<&str> {
-    match Regex::new(r#"(?:zero|one|two|three|four|five|six|seven|eight|nine|\d)"#) {
-        Ok(re) => {
-            let captures: Vec<&str> = re
-                .captures_iter(str)
-                .filter_map(|c| c.get(0))
-                .map(|m| &str[m.start()..m.end()])
-                .collect();
-            captures
-        }
-        _ => Vec::new(),
-    }
+    let patterns = [
+        "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", r"\d",
+    ];
+    let regex_set = RegexSet::new(patterns).expect("Incorrect regex patterns");
+    let regexes: Vec<Regex> = regex_set
+        .patterns()
+        .iter()
+        .map(|p| Regex::new(p).expect(format!("Failed to build regex for pattern {p}").as_str()))
+        .collect();
+
+    let mut matches = regex_set
+        .matches(str)
+        .into_iter()
+        .filter_map(|index| regexes.get(index))
+        .flat_map(|re| re.find_iter(str).collect::<Vec<Match>>())
+        .collect::<Vec<Match>>();
+
+    matches.sort_by(|a, b| a.start().partial_cmp(&b.start()).unwrap());
+
+    matches.iter().map(|m| &str[m.start()..m.end()]).collect()
 }
 
 fn day_one_part_one(file_content: &String) -> usize {
@@ -75,7 +84,11 @@ fn day_one_part_two(file_content: &String) -> usize {
             println!("LINE {line}: {:?}", nums);
 
             match (nums.first(), nums.last()) {
-                (Some(first), Some(last)) => first * 10 + last,
+                (Some(first), Some(last)) => {
+                    let sum = first * 10 + last;
+                    println!("SUM {first} + {last} = {sum}");
+                    sum
+                }
                 _ => 0,
             }
         })
