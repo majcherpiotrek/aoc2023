@@ -1,3 +1,4 @@
+use regex::Regex;
 use std::env;
 use std::fs;
 
@@ -14,19 +15,71 @@ fn build_input_file_path(day: usize, part: usize) -> String {
     format!("./input_data/day_{}/part_{}", day, part)
 }
 
-fn day_one_part_one(file_content: &String) -> usize {
-    file_content.split("\n").map(|line| {
-        let nums: Vec<usize> = line.chars().map(|c| {
-            c.to_digit(10).and_then(|digit| 
-                digit.try_into().ok()
-            )
-        }).filter_map(|x| x).collect();
-        
-        match (nums.first(), nums.last()) {
-            (Some(first), Some(last)) => first * 10 + last,
-            _ => 0
+fn find_candidates(str: &str) -> Vec<&str> {
+    match Regex::new(r#"(?:zero|one|two|three|four|five|six|seven|eight|nine|\d)"#) {
+        Ok(re) => {
+            let captures: Vec<&str> = re
+                .captures_iter(str)
+                .filter_map(|c| c.get(0))
+                .map(|m| &str[m.start()..m.end()])
+                .collect();
+            captures
         }
-    }).fold(0, |acc, elem| acc + elem)
+        _ => Vec::new(),
+    }
+}
+
+fn day_one_part_one(file_content: &String) -> usize {
+    file_content
+        .split("\n")
+        .map(|line| {
+            let nums: Vec<usize> = line
+                .chars()
+                .map(|c| c.to_digit(10).and_then(|digit| digit.try_into().ok()))
+                .filter_map(|x| x)
+                .collect();
+
+            match (nums.first(), nums.last()) {
+                (Some(first), Some(last)) => first * 10 + last,
+                _ => 0,
+            }
+        })
+        .fold(0, |acc, elem| acc + elem)
+}
+
+fn parse_num(str: &str) -> Option<usize> {
+    match str {
+        "one" => Some(1),
+        "two" => Some(2),
+        "three" => Some(3),
+        "four" => Some(4),
+        "five" => Some(5),
+        "six" => Some(6),
+        "seven" => Some(7),
+        "eight" => Some(8),
+        "nine" => Some(9),
+        other => other.parse::<usize>().ok(),
+    }
+}
+
+fn day_one_part_two(file_content: &String) -> usize {
+    file_content
+        .split("\n")
+        .map(|line| {
+            let nums: Vec<usize> = find_candidates(&line)
+                .iter()
+                .map(|candidate| parse_num(candidate))
+                .filter_map(|x| x)
+                .collect();
+
+            println!("LINE {line}: {:?}", nums);
+
+            match (nums.first(), nums.last()) {
+                (Some(first), Some(last)) => first * 10 + last,
+                _ => 0,
+            }
+        })
+        .fold(0, |acc, elem| acc + elem)
 }
 
 fn main() {
@@ -41,7 +94,8 @@ fn main() {
             let path = build_input_file_path(day, part);
             let contents =
                 fs::read_to_string(path).expect("Should have been able to read the file");
-            println!("Result: {}", day_one_part_one(&contents));
+            //println!("Result: {}", day_one_part_one(&contents));
+            println!("Result: {}", day_one_part_two(&contents));
         }
         _ => println!("Please specify a day and part of the puzzle, e.g --day=1 --part=1"),
     }
