@@ -92,3 +92,25 @@ pub fn find_possible_games(
 
     valid_games.fold(0, |acc, game| acc + game.game_id)
 }
+
+pub fn power_of_minimal_possible_games(games_log: &str) -> usize {
+    let games: Vec<CubesGame> = games_log.split("\n").filter_map(CubesGame::parse).collect();
+
+    games
+        .iter()
+        .map(|game| {
+            let max_red = get_max_num_of_cubes_in_game(game, CubeColor::Red).unwrap_or(1);
+            let max_green = get_max_num_of_cubes_in_game(game, CubeColor::Green).unwrap_or(1);
+            let max_blue = get_max_num_of_cubes_in_game(game, CubeColor::Blue).unwrap_or(1);
+            max_red * max_green * max_blue
+        })
+        .fold(0, |acc, elem| acc + elem)
+}
+
+fn get_max_num_of_cubes_in_game(game: &CubesGame, color: CubeColor) -> Option<usize> {
+    game.cube_sets
+        .iter()
+        .flat_map(|cube_set| cube_set.cubes.get(&color))
+        .max()
+        .map(|&n| n)
+}
