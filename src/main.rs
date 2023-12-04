@@ -1,10 +1,11 @@
 use std::env;
 
 
-pub mod puzzle_reader;
-pub mod trebuchet;
-pub mod cube_conundrum;
-pub mod gear_ratios;
+mod puzzle_reader;
+mod trebuchet;
+mod cube_conundrum;
+mod gear_ratios;
+mod scratchcards;
 
 use crate::puzzle_reader::{PuzzleIdentifier, read_puzzle};
 
@@ -23,6 +24,7 @@ fn main() {
                 PuzzleIdentifier { day: 2, part: 2 } => cube_conundrum::power_of_minimal_possible_games(&puzzle.input_data).to_string(),
                 PuzzleIdentifier { day: 3, part: 1 } => gear_ratios::count_engine_parts(&puzzle.input_data).to_string(),
                 PuzzleIdentifier { day: 3, part: 2 } => gear_ratios::count_gear_ratio(&puzzle.input_data).to_string(),
+                PuzzleIdentifier { day: 4, part: 1 } => scratchcards::sum_scratchcard_points(&puzzle.input_data).to_string(),
                 _ => "Sorry, there is no solution for this puzzle yet ;(".to_string()
             };
             println!("{program_result}");
