@@ -27,11 +27,14 @@ impl RangeMapping {
         }
     }
 
+    // Returns:
+    // - empty vector when no match found
+    // - vector with one element when the range being mapped is completely contained withing the
+    // mapping range
+    // - vector with two elements when the range being mapped overlaps partially. First element is
+    // the mapped range, second element is the unmapped rest of the initial range.
     pub fn map_range(&self, range: &Range) -> Vec<Range> {
         if self.overlaps(range) {
-            //println!("Overlapping ranges!");
-            //println!("{:?}", range);
-            //println!("{:?}", self);
             let is_offset_positive = self.source_start <= self.destination_start;
 
             let offset = if is_offset_positive {
@@ -41,7 +44,6 @@ impl RangeMapping {
             };
 
             if self.is_contained_within(range) {
-                //println!("Range is contained within the range mapping");
                 let mapped_range_start = if is_offset_positive {
                     range.start + offset
                 } else {
@@ -52,21 +54,11 @@ impl RangeMapping {
                     start: mapped_range_start,
                     len: range.len,
                 };
-                //println!("Result ranges: {:?}", mapped_range);
                 vec![mapped_range]
             } else {
-                //println!("Range only overlaps ...");
                 if range.start < self.source_start {
                     // Range overlaps with tail
-                    //println!(
-                    //    "Range overlaps with tail ({} .. ({} .. {}) .. {})",
-                    //    range.start,
-                    //    self.source_start,
-                    //    range.start + range.len - 1,
-                    //    self.source_start + self.len - 1
-                    //);
                     let overlapping_length = range.start + range.len - self.source_start;
-                    //println!("overlappinglength {}", overlapping_length);
 
                     let unchanged_range = Range {
                         start: range.start,
@@ -80,21 +72,12 @@ impl RangeMapping {
                         },
                         len: overlapping_length,
                     };
-                    //println!("Result ranges: {:?}, {:?}", unchanged_range, mapped_range);
                     vec![mapped_range, unchanged_range]
                 } else {
                     // Range overlaps with beginning
                     let mapping_range_end = self.source_start + self.len;
                     let range_end = range.start + range.len;
                     let overlapping_length = mapping_range_end - range.start;
-                    //println!(
-                    //    "Range overlaps with head ({} .. ({} .. {}) .. {})",
-                    //    self.source_start,
-                    //    range.start,
-                    //    mapping_range_end - 1,
-                    //    range_end - 1
-                    //);
-                    //println!("overlapping length {}", overlapping_length);
 
                     let mapped_range = Range {
                         start: if is_offset_positive {
@@ -108,7 +91,6 @@ impl RangeMapping {
                         start: self.source_start + self.len,
                         len: range_end - (self.source_start + self.len),
                     };
-                    //println!("Result ranges: {:?}, {:?}", mapped_range, unchanged_range);
                     vec![mapped_range, unchanged_range]
                 }
             }
@@ -137,14 +119,14 @@ struct Range {
 }
 
 #[derive(Debug)]
-struct Map {
+struct Mappings {
     pub source_name: String,
     pub destination_name: String,
     pub range_mappings: Vec<RangeMapping>,
 }
 
-impl Map {
-    pub fn parse(block: &str) -> Option<Map> {
+impl Mappings {
+    pub fn parse(block: &str) -> Option<Mappings> {
         let mut block_split = block.split("\n");
 
         let maybe_name = block_split.next().and_then(|line| {
@@ -167,7 +149,7 @@ impl Map {
             .filter_map(RangeMapping::parse)
             .collect::<Vec<RangeMapping>>();
 
-        maybe_name.map(|(source_name, destination_name)| Map {
+        maybe_name.map(|(source_name, destination_name)| Mappings {
             source_name: source_name.to_string(),
             destination_name: destination_name.to_string(),
             range_mappings: ranges,
@@ -185,34 +167,32 @@ impl Map {
         })
     }
 
-    fn process_range(&self, range: &Range) -> Vec<Range> {
+    fn map_single_range(&self, range: &Range) -> Vec<Range> {
         let mut results: Vec<Range> = Vec::new();
-        let mut range_to_process = Some(range.clone());
+        let mut range_to_map = Some(range.clone());
 
         for mapping in self.range_mappings.iter() {
-            match range_to_process {
+            match range_to_map {
                 Some(r) => {
                     let mapping_result = mapping.map_range(&r);
-                    //println!("To process: {:?}", r);
-                    //println!("res: {:?}", mapping_result);
                     if mapping_result.len() == 1 {
                         let mapped_range = mapping_result.get(0).expect("Unexpected error");
                         results.push(mapped_range.clone());
-                        range_to_process = None;
+                        range_to_map = None;
                         break;
                     } else if mapping_result.len() == 2 {
                         let mapped_range = mapping_result.get(0).expect("Unexpected error");
                         results.push(mapped_range.clone());
-                        range_to_process = mapping_result.get(1).copied();
+                        range_to_map = mapping_result.get(1).copied();
                     }
                 }
                 None => break,
             }
         }
 
-        match range_to_process {
+        match range_to_map {
             Some(r) => results.push(r.clone()),
-            None => ()
+            None => (),
         }
 
         results
@@ -221,44 +201,14 @@ impl Map {
     pub fn map_ranges(&self, ranges: &Vec<Range>) -> Vec<Range> {
         ranges
             .iter()
-            .flat_map(|range| {
-                //println!("processing range");
-                //println!("({} .. {})", range.start, range.start + range.len - 1);
-                //println!("Mappings");
-                //let print_mappings = self
-                //    .range_mappings
-                //    .iter()
-                //    .map(|rm| {
-                //        format!(
-                //            "({} -> {} ... {} -> {} / {})",
-                //            rm.source_start,
-                //            rm.destination_start,
-                //            rm.source_start + rm.len - 1,
-                //            rm.destination_start + rm.len - 1,
-                //            (rm.destination_start as i64) - (rm.source_start as i64)
-                //        )
-                //    })
-                //    .collect::<Vec<String>>()
-                //    .join(" ");
-                //println!("{print_mappings}");
-                let processed = self.process_range(range);
-                //println!("Processed");
-                //let processed_print = processed
-                //    .iter()
-                //    .map(|r| format!("({} .. {})", r.start, r.start + r.len - 1))
-                //    .collect::<Vec<String>>()
-                //    .join(" ");
-                //println!("{processed_print}\n");
-                processed
-            })
+            .flat_map(|range| self.map_single_range(range))
             .collect::<Vec<Range>>()
     }
 }
 
-#[derive(Debug)]
 struct Almanac {
     seeds: Vec<usize>,
-    maps: HashMap<String, Map>,
+    maps: HashMap<String, Mappings>,
 }
 
 impl Almanac {
@@ -276,9 +226,9 @@ impl Almanac {
         });
 
         let maps = blocks_split
-            .filter_map(Map::parse)
+            .filter_map(Mappings::parse)
             .map(|m| (m.source_name.clone(), m))
-            .collect::<HashMap<String, Map>>();
+            .collect::<HashMap<String, Mappings>>();
 
         maybe_seeds.map(|seeds| Almanac { seeds, maps })
     }
@@ -289,6 +239,38 @@ impl Almanac {
             .map(|seed| self.get_location_for_seed(seed))
             .min()
             .unwrap_or(0)
+    }
+
+    pub fn get_lowest_seed_destination_for_seed_ranges(&self) -> usize {
+        let mut seed_ranges = self
+            .seeds
+            .chunks(2)
+            .map(|chunk| Range {
+                start: chunk[0],
+                len: chunk[1],
+            })
+            .collect::<Vec<Range>>();
+        let mut category_name = "seed";
+
+        loop {
+            let map_for_category = self
+                .maps
+                .get(category_name)
+                .expect("Invalid category name!");
+
+            let mapped_seed_ranges = map_for_category.map_ranges(&seed_ranges);
+
+            if map_for_category.destination_name == "location" {
+                break mapped_seed_ranges
+                    .iter()
+                    .map(|r| r.start)
+                    .min()
+                    .expect("Something went wrong - no result found");
+            } else {
+                seed_ranges = mapped_seed_ranges;
+                category_name = &map_for_category.destination_name;
+            }
+        }
     }
 
     fn get_location_for_seed(&self, seed: &usize) -> usize {
@@ -312,58 +294,6 @@ impl Almanac {
             }
         }
     }
-
-    pub fn get_lowes_seed_destination_for_seed_ranges(&self) -> usize {
-        let mut seed_ranges = self
-            .seeds
-            .chunks(2)
-            .map(|chunk| Range {
-                start: chunk[0],
-                len: chunk[1],
-            })
-            .collect::<Vec<Range>>();
-        let mut category_name = "seed";
-
-        loop {
-            let map_for_category = self
-                .maps
-                .get(category_name)
-                .expect("Invalid category name!");
-            //println!(
-            //    "INPUT {category_name} {}",
-            //    map_for_category.destination_name
-            //);
-            //println!(
-            //    "{:?}\n",
-            //    seed_ranges
-            //        .iter()
-            //        .map(|s| format!("({} .. {}) ", s.start, s.start + s.len - 1))
-            //        .collect::<Vec<String>>()
-            //);
-
-            let mapped_seed_ranges = map_for_category.map_ranges(&seed_ranges);
-
-            //println!("Mapped");
-            //println!(
-            //    "{:?}\n",
-            //    mapped_seed_ranges
-            //        .iter()
-            //        .map(|s| format!("({} .. {}) ", s.start, s.start + s.len - 1))
-            //        .collect::<Vec<String>>()
-            //);
-            //println!("\n\n");
-            if map_for_category.destination_name == "location" {
-                break mapped_seed_ranges
-                    .iter()
-                    .map(|r| r.start)
-                    .min()
-                    .unwrap_or(0);
-            } else {
-                seed_ranges = mapped_seed_ranges;
-                category_name = &map_for_category.destination_name;
-            }
-        }
-    }
 }
 
 pub fn read_almanac_seed_by_seed(file: &str) -> usize {
@@ -375,5 +305,5 @@ pub fn read_almanac_seed_by_seed(file: &str) -> usize {
 pub fn read_almanac_by_seed_ranges(file: &str) -> usize {
     let almanac = Almanac::parse(file).expect("Failed to parse input file");
 
-    almanac.get_lowes_seed_destination_for_seed_ranges()
+    almanac.get_lowest_seed_destination_for_seed_ranges()
 }
