@@ -6,6 +6,7 @@ mod trebuchet;
 mod cube_conundrum;
 mod gear_ratios;
 mod scratchcards;
+mod garden;
 
 use crate::puzzle_reader::{PuzzleIdentifier, read_puzzle};
 
@@ -26,6 +27,8 @@ fn main() {
                 PuzzleIdentifier { day: 3, part: 2 } => gear_ratios::count_gear_ratio(&puzzle.input_data).to_string(),
                 PuzzleIdentifier { day: 4, part: 1 } => scratchcards::sum_scratchcard_points(&puzzle.input_data).to_string(),
                 PuzzleIdentifier { day: 4, part: 2 } => scratchcards::process_scratchcards(&puzzle.input_data).to_string(),
+                PuzzleIdentifier { day: 5, part: 1 } => garden::read_almanac(&puzzle.input_data).to_string(),
+                PuzzleIdentifier { day: 5, part: 2 } => garden::read_almanac(&puzzle.input_data).to_string(),
                 _ => "Sorry, there is no solution for this puzzle yet ;(".to_string()
             };
             println!("{program_result}");
