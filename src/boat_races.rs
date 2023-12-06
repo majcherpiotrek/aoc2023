@@ -1,3 +1,16 @@
+pub fn calculate_winning_possibilities(file: &str) -> usize {
+    let mut file_split = file.split("\n");
+    let maybe_race_time = file_split.next().and_then(parse_line_part_two);
+    let maybe_record_distance = file_split.next().and_then(parse_line_part_two);
+
+    match (maybe_race_time, maybe_record_distance) {
+        (Some(race_time), Some(record_distance)) => {
+            get_all_possible_winning_charging_times(&race_time, &record_distance).len()
+        }
+        _ => 0,
+    }
+}
+
 pub fn calculate_race_winning_margin(file: &str) -> usize {
     let race_stats = decode_race_stats_part_one(file);
     race_stats
@@ -32,6 +45,15 @@ fn parse_line_part_one(line: &str) -> Vec<usize> {
     line.split_whitespace()
         .filter_map(|s| s.parse::<usize>().ok())
         .collect::<Vec<usize>>()
+}
+
+fn parse_line_part_two(line: &str) -> Option<usize> {
+    let line_without_whitespaces = line.split_whitespace().collect::<String>();
+
+    line_without_whitespaces
+        .split(":")
+        .nth(1)
+        .and_then(|s| s.parse::<usize>().ok())
 }
 
 fn get_all_possible_winning_charging_times(

@@ -31,6 +31,7 @@ fn main() {
                 PuzzleIdentifier { day: 5, part: 1 } => garden::read_almanac_seed_by_seed(&puzzle.input_data).to_string(),
                 PuzzleIdentifier { day: 5, part: 2 } => garden::read_almanac_by_seed_ranges(&puzzle.input_data).to_string(),
                 PuzzleIdentifier { day: 6, part: 1 } => boat_races::calculate_race_winning_margin(&puzzle.input_data).to_string(),
+                PuzzleIdentifier { day: 6, part: 2 } => boat_races::calculate_winning_possibilities(&puzzle.input_data).to_string(),
                 _ => "Sorry, there is no solution for this puzzle yet ;(".to_string()
             };
             println!("{program_result}");
