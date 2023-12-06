@@ -7,6 +7,7 @@ mod cube_conundrum;
 mod gear_ratios;
 mod scratchcards;
 mod garden;
+mod boat_races;
 
 use crate::puzzle_reader::{PuzzleIdentifier, read_puzzle};
 
@@ -29,6 +30,7 @@ fn main() {
                 PuzzleIdentifier { day: 4, part: 2 } => scratchcards::process_scratchcards(&puzzle.input_data).to_string(),
                 PuzzleIdentifier { day: 5, part: 1 } => garden::read_almanac_seed_by_seed(&puzzle.input_data).to_string(),
                 PuzzleIdentifier { day: 5, part: 2 } => garden::read_almanac_by_seed_ranges(&puzzle.input_data).to_string(),
+                PuzzleIdentifier { day: 6, part: 1 } => boat_races::calculate_race_winning_margin(&puzzle.input_data).to_string(),
                 _ => "Sorry, there is no solution for this puzzle yet ;(".to_string()
             };
             println!("{program_result}");
