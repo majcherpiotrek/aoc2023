@@ -34,6 +34,7 @@ fn main() {
                 PuzzleIdentifier { day: 6, part: 1 } => boat_races::calculate_race_winning_margin(&puzzle.input_data).to_string(),
                 PuzzleIdentifier { day: 6, part: 2 } => boat_races::calculate_winning_possibilities(&puzzle.input_data).to_string(),
                 PuzzleIdentifier { day: 7, part: 1 } => camel_cards::calculate_total_winning(&puzzle.input_data).to_string(),
+                PuzzleIdentifier { day: 7, part: 2 } => camel_cards::calculate_total_winning_with_jokers(&puzzle.input_data).to_string(),
                 _ => "Sorry, there is no solution for this puzzle yet ;(".to_string()
             };
             println!("{program_result}");

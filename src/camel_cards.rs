@@ -39,6 +39,50 @@ pub fn calculate_total_winning(file: &str) -> usize {
     sum
 }
 
+pub fn calculate_total_winning_with_jokers(file: &str) -> usize {
+    let mut hands = parse_input_with_joker(file);
+    hands.sort_by(|a, b| {
+        let (a_hand, _) = a;
+        let (b_hand, _) = b;
+        let ord = if std::mem::discriminant(a_hand) == std::mem::discriminant(b_hand) {
+            Ordering::Equal
+        } else {
+            a_hand.partial_cmp(b_hand).unwrap_or(Ordering::Equal)
+        };
+        if ord == Ordering::Equal {
+            let mut card_ord = Ordering::Equal;
+            let cards_zipped = a_hand
+                .get_cards()
+                .iter()
+                .zip(b_hand.get_cards().iter())
+                .collect::<Vec<(&Card, &Card)>>();
+            for (card_a, card_b) in cards_zipped {
+                card_ord = match (card_a, card_b) {
+                    (Card::Jack, Card::Jack) => Ordering::Equal,
+                    (Card::Jack, _) => Ordering::Greater,
+                    (_, Card::Jack) => Ordering::Less,
+                    _ => card_b.partial_cmp(&card_a).unwrap_or(Ordering::Equal)
+                };
+                if card_ord != Ordering::Equal {
+                    break;
+                }
+            }
+            card_ord
+        } else {
+            ord
+        }
+    });
+    let mut sum = 0;
+    for (i, hand) in hands.iter().enumerate() {
+        println!("{:?}", hand);
+        let (_, bet) = hand;
+        let strength = hands.len() - i;
+        sum += strength * bet;
+    }
+
+    sum
+}
+
 fn parse_input(file: &str) -> Vec<(Hand, usize)> {
     file.split("\n")
         .filter_map(|line| {
@@ -54,6 +98,20 @@ fn parse_input(file: &str) -> Vec<(Hand, usize)> {
         .collect()
 }
 
+fn parse_input_with_joker(file: &str) -> Vec<(Hand, usize)> {
+    file.split("\n")
+        .filter_map(|line| {
+            let mut line_split = line.split_whitespace();
+            let maybe_hand = line_split.next().and_then(Hand::parse_with_jokers);
+            let maybe_bet = line_split.next().and_then(|num| num.parse::<usize>().ok());
+
+            match (maybe_hand, maybe_bet) {
+                (Some(hand), Some(bet)) => Some((hand, bet)),
+                _ => None,
+            }
+        })
+        .collect()
+}
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 enum Card {
     Ace = 14,
@@ -110,6 +168,13 @@ impl Hand {
             .filter_map(|c| Card::parse(&c.to_string()))
             .collect::<Vec<Card>>();
         Hand::from_cards(&cards)
+    }
+    pub fn parse_with_jokers(str: &str) -> Option<Hand> {
+        let cards = str
+            .chars()
+            .filter_map(|c| Card::parse(&c.to_string()))
+            .collect::<Vec<Card>>();
+        Hand::from_cards_with_joker(&cards)
     }
 
     pub fn get_cards(&self) -> &Vec<Card> {
@@ -168,6 +233,99 @@ impl Hand {
             Some(Hand::HighCard {
                 cards: cards.to_vec(),
             })
+        } else {
+            None
+        }
+    }
+
+    fn from_cards_with_joker(cards: &Vec<Card>) -> Option<Hand> {
+        if cards.len() != 5 {
+            return None;
+        }
+        let grouped_cards = Hand::group_cards(&cards);
+        let first_card = cards.get(0).unwrap();
+
+        if grouped_cards.len() == 1 {
+            Some(Hand::FiveOfAKind {
+                cards: cards.to_vec(),
+            })
+        } else if grouped_cards.len() == 2 {
+            grouped_cards.get(first_card).and_then(|num_of_cards| {
+                if *num_of_cards == 1 || *num_of_cards == 4 {
+                    if grouped_cards.contains_key(&Card::Jack) {
+                        Some(Hand::FiveOfAKind {
+                            cards: cards.to_vec(),
+                        })
+                    } else {
+                        Some(Hand::FourOfAKind {
+                            cards: cards.to_vec(),
+                        })
+                    }
+                } else if *num_of_cards == 2 || *num_of_cards == 3 {
+                    if grouped_cards.contains_key(&Card::Jack) {
+                        Some(Hand::FiveOfAKind {
+                            cards: cards.to_vec(),
+                        })
+                    } else {
+                        Some(Hand::FullHouse {
+                            cards: cards.to_vec(),
+                        })
+                    }
+                } else {
+                    None
+                }
+            })
+        } else if grouped_cards.len() == 3 {
+            let is_three_of_a_kind = grouped_cards.iter().any(|(_, n)| *n == 3);
+            if is_three_of_a_kind {
+                if grouped_cards.contains_key(&Card::Jack) {
+                    Some(Hand::FourOfAKind {
+                        cards: cards.to_vec(),
+                    })
+                } else {
+                    Some(Hand::ThreeOfAKind {
+                        cards: cards.to_vec(),
+                    })
+                }
+            } else {
+                let num_of_jokers = grouped_cards.get(&Card::Jack).unwrap_or(&0);
+
+                if *num_of_jokers == 0 {
+                    Some(Hand::TwoPair {
+                        cards: cards.to_vec(),
+                    })
+                } else if *num_of_jokers == 1 {
+                    Some(Hand::FullHouse {
+                        cards: cards.to_vec(),
+                    })
+                } else if *num_of_jokers == 2 {
+                    Some(Hand::FourOfAKind {
+                        cards: cards.to_vec(),
+                    })
+                } else {
+                    None
+                }
+            }
+        } else if grouped_cards.len() == 4 {
+            if grouped_cards.contains_key(&Card::Jack) {
+                Some(Hand::ThreeOfAKind {
+                    cards: cards.to_vec(),
+                })
+            } else {
+                Some(Hand::OnePair {
+                    cards: cards.to_vec(),
+                })
+            }
+        } else if grouped_cards.len() == 5 {
+            if grouped_cards.contains_key(&Card::Jack) {
+                Some(Hand::OnePair {
+                    cards: cards.to_vec(),
+                })
+            } else {
+                Some(Hand::HighCard {
+                    cards: cards.to_vec(),
+                })
+            }
         } else {
             None
         }
