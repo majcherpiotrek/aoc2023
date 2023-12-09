@@ -111,45 +111,57 @@ pub fn find_way_ghosts(file: &str) -> usize {
         None => (),
     }
 
-    //println!("Instructions: {:?}", instructions);
-    //println!("Map: {:?}", nodes_map);
-
-    let mut start_nodes = nodes_map
+    let start_nodes = nodes_map
         .keys()
         .filter(|key| key.ends_with("A"))
         .map(|node| node.to_string())
         .collect::<Vec<String>>();
-    let mut steps: usize = 0;
+    let mut steps_arr: Vec<usize> = Vec::new();
 
-    loop {
-        let index = steps % instructions.len();
-        steps = steps + 1;
-        //println!("\nStep {steps}");
-        //println!("Instruction index: {index}");
-        let direction = instructions.get(index).expect("This should never happen");
-        //println!("Instruction: {direction}");
+    for start_node in start_nodes.iter() {
+        let mut current_node: &str = &start_node;
+        let mut steps: usize = 0;
 
-        start_nodes = start_nodes
-            .into_iter()
-            .map(|current_node| {
-                let current_node_pair = nodes_map
-                    .get(&current_node)
-                    .expect("This should never happen");
-                let next_node = match direction {
-                    'L' => current_node_pair.left(),
-                    'R' => current_node_pair.right(),
-                    _ => panic!("Incorrect direction"),
-                };
-                next_node.to_string()
-            })
-            .collect();
+        loop {
+            let index = steps % instructions.len();
+            steps = steps + 1;
+            let direction = instructions.get(index).expect("This should never happen");
+            let current_node_pair = nodes_map
+                .get(current_node)
+                .expect("This should never happen");
+            let next_node = match direction {
+                'L' => current_node_pair.left(),
+                'R' => current_node_pair.right(),
+                _ => panic!("Incorrect direction"),
+            };
 
-        let are_all_finished = start_nodes.iter().all(|node| node.ends_with("Z"));
-
-        if are_all_finished {
-            break;
+            if next_node.ends_with("Z") {
+                break;
+            } else {
+                current_node = next_node;
+            }
         }
+        steps_arr.push(steps);
     }
 
-    steps
+    steps_arr.iter().fold(1, |acc, elem| lcm(acc, *elem))
+}
+
+pub fn lcm(a: usize, b: usize) -> usize {
+    (a * b) / gcd(a, b)
+}
+
+pub fn gcd(a: usize, b: usize) -> usize {
+    let mut next_a = b;
+    let mut next_b = a % b;
+
+    loop {
+        if next_b == 0 {
+            break next_a;
+        } else {
+            let remainder = next_a % next_b;
+            next_a = next_b;
+            next_b = remainder;
+        }
+    }
 }
