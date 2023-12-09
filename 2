@@ -1,0 +1,21 @@
+pub fn oasis_report(file: &str) -> i64 {
+    
+    0
+}
+
+fn extrapolate_value_prediction(values: &mut Vec<i64>) -> i64 {
+  let mut values_matrix = vec![values];
+  let mut current_row_index = 0; 
+  loop {
+    let current_row = values_matrix.get(current_row_index).expect("Invalid values matrix");
+    let mut next_row = current_row.iter().enumerate().fold(Vec::new(), |acc, (i, elem)| {
+       if i >= 1 {
+         let diff = elem - current_row.get(i - 1).expect("Unexpected error");
+         acc.push(diff);
+        }
+        acc
+    }); 
+    values_matrix.push(next_row);
+  }
+  
+}
