@@ -1,12 +1,107 @@
-pub fn steps_to_farthest_loop_end(file: &str) -> usize {
-    let maze = Maze::parse(file);
-    let shortest_loop_length = find_shortest_loop_in_maze(&maze).expect("No loops found in maze");
+use std::cmp::Ordering;
 
-    shortest_loop_length / 2
+pub fn surface_inside_loop(file: &str) -> usize {
+    let maze = Maze::parse(file);
+    let mut shortest_loop = find_shortest_loop_in_maze(&maze).expect("no loops found in maze");
+
+    println!("Shortest loop {:?}", shortest_loop);
+    shortest_loop.sort_by(|a, b| {
+        let row_ord = a.0.cmp(&b.0);
+        if row_ord == Ordering::Equal {
+            row_ord
+        } else {
+            a.1.cmp(&b.1)
+        }
+    });
+
+    let max_north = shortest_loop
+        .iter()
+        .min_by(|a, b| a.0.cmp(&b.0))
+        .expect("Failed to calculate bounding square");
+    let max_east = shortest_loop
+        .iter()
+        .max_by(|a, b| a.1.cmp(&b.1))
+        .expect("Failed to calculate bounding square");
+    let max_south = shortest_loop
+        .iter()
+        .max_by(|a, b| a.0.cmp(&b.0))
+        .expect("Failed to calculate bounding square");
+    let max_west = shortest_loop
+        .iter()
+        .min_by(|a, b| a.1.cmp(&b.1))
+        .expect("Failed to calculate bounding square");
+
+    let north_limit = max_north.0 + 1;
+    let east_limit = max_east.1;
+    let south_limit = max_south.0;
+    let west_limit = max_west.1 + 1;
+
+    println!("north {north_limit}");
+    println!("east {east_limit}");
+    println!("south {south_limit}");
+    println!("west {west_limit}");
+
+    let mut points_inside: Vec<(Position, MazeElement)> = Vec::new();
+
+    for row in north_limit..=south_limit {
+        println!("\nROW {row}");
+        for start_col in west_limit..=(east_limit - 1) {
+            println!("\nCOL {start_col}");
+            let mut intersections: Vec<Position> = Vec::new();
+            for col in start_col..=east_limit {
+                let point_to_check = Position(row, col);
+                let intersects = shortest_loop.contains(&point_to_check);
+                if intersects {
+                    intersections.push(point_to_check);
+                }
+            }
+            println!("Intersections: {}", intersections.len());
+
+            let mut num_of_unique_intersections: usize = 0;
+
+            for (i, intersection) in intersections.iter().enumerate() {
+                if i == 0 {
+                    num_of_unique_intersections += 1;
+                } else {
+                    let previous = intersections.get(i - 1).expect("Unexpected error");
+                    if intersection.1 - previous.1 > 1 {
+                        num_of_unique_intersections += 1;
+                    }
+                }
+            }
+            println!("Unique intersections: {num_of_unique_intersections}");
+
+            if num_of_unique_intersections != 0 && num_of_unique_intersections % 2 != 0 {
+                if num_of_unique_intersections == 1 && intersections.len() > 1 {
+                    continue;
+                }
+                let element = maze
+                    .get_element(&Position(row, start_col))
+                    .expect("No such point in the maze");
+                match element {
+                    MazeElement::Ground => {
+                        points_inside.push((Position(row, start_col), element.clone()));
+                    }
+                    _ => (),
+                }
+            }
+        }
+    }
+
+    println!("Points inside {:?}", points_inside);
+
+    points_inside.len()
 }
 
-fn find_shortest_loop_in_maze(maze: &Maze) -> Option<usize> {
-    let path_lengths = vec![
+pub fn steps_to_farthest_loop_end(file: &str) -> usize {
+    let maze = Maze::parse(file);
+    let shortest_loop = find_shortest_loop_in_maze(&maze).expect("no loops found in maze");
+
+    shortest_loop.len() / 2
+}
+
+fn find_shortest_loop_in_maze(maze: &Maze) -> Option<Vec<Position>> {
+    let paths = vec![
         maze.try_path(&maze.maze_start, Direction::North),
         maze.try_path(&maze.maze_start, Direction::East),
         maze.try_path(&maze.maze_start, Direction::South),
@@ -14,8 +109,8 @@ fn find_shortest_loop_in_maze(maze: &Maze) -> Option<usize> {
     ]
     .into_iter()
     .filter_map(|elem| elem)
-    .collect::<Vec<usize>>();
-    path_lengths.iter().min().copied()
+    .collect::<Vec<Vec<Position>>>();
+    paths.into_iter().min_by(|a, b| a.len().cmp(&b.len()))
 }
 
 struct Maze {
@@ -47,40 +142,40 @@ impl Maze {
         }
     }
 
-    pub fn try_path(&self, start: &Position, direction: Direction) -> Option<usize> {
-        println!("Trying path from start at {:?} in direction {:?}", start, direction);
-        let mut path_length = 1;
+    pub fn try_path(&self, start: &Position, direction: Direction) -> Option<Vec<Position>> {
+        //println!("Trying path from start at {:?} in direction {:?}", start, direction);
         let mut current_position = start.clone();
         let mut current_direction = direction;
+        let mut path = vec![start.clone()];
         loop {
-            println!("\nPath length: {path_length}");
-            println!("Position: {:?}", current_position);
-            println!("Direction: {:?}", current_direction);
+            //println!("\nPath: {:?}", path);
+            //println!("Position: {:?}", current_position);
+            //println!("Direction: {:?}", current_direction);
             let maybe_destination =
                 self.get_relative_element(&current_position, &current_direction.clone());
-            println!("Maybe destination: {:?}", maybe_destination);
+            //println!("Maybe destination: {:?}", maybe_destination);
 
             match maybe_destination {
                 None => break None,
                 Some((pos, pipe)) => {
                     let direction_in = current_direction.opposite();
-                    println!("Entering the pipe from {:?}", direction_in);
+                    //println!("Entering the pipe from {:?}", direction_in);
                     let maybe_next = pipe
                         .go_through_pipe(&direction_in)
                         .map(|direction_out| (pos, direction_out));
-                    println!("Maybe next: {:?}", maybe_next);
+                    //println!("Maybe next: {:?}", maybe_next);
                     match maybe_next {
                         Some((next_position, next_direction)) => {
                             current_position = next_position;
                             current_direction = next_direction;
-                            path_length += 1;
+                            path.push(next_position);
                         }
                         None => {
                             if pos == *start {
-                                println!("Reached start!\n");
-                                break Some(path_length);
+                                //println!("Reached start!\n");
+                                break Some(path);
                             } else {
-                                println!("Pipe led to nowhere!\n");
+                                //println!("Pipe led to nowhere!\n");
                                 break None;
                             }
                         }
@@ -151,7 +246,7 @@ impl MazeElement {
     }
 
     pub fn go_through_pipe(&self, enter_from: &Direction) -> Option<Direction> {
-        println!("Entering a pipe {:?} from {:?}", self, enter_from);
+        //println!("Entering a pipe {:?} from {:?}", self, enter_from);
         match self {
             MazeElement::Pipe { end_a, end_b } => {
                 if *enter_from == *end_a {
@@ -186,7 +281,7 @@ impl Direction {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
 struct Position(usize, usize);
 
 impl Position {

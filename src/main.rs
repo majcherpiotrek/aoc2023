@@ -12,6 +12,8 @@ mod camel_cards;
 mod haunted_wasteland;
 mod mirage_maintenance;
 mod pipe_maze;
+mod cosmic_expansion;
+mod hot_springs;
 
 use crate::puzzle_reader::{PuzzleIdentifier, read_puzzle};
 
@@ -43,6 +45,9 @@ fn main() {
                 PuzzleIdentifier { day: 9, part: 1 } => mirage_maintenance::oasis_report(&puzzle.input_data).to_string(),
                 PuzzleIdentifier { day: 9, part: 2 } => mirage_maintenance::oasis_report_backwards(&puzzle.input_data).to_string(),
                 PuzzleIdentifier { day: 10, part: 1 } => pipe_maze::steps_to_farthest_loop_end(&puzzle.input_data).to_string(),
+                PuzzleIdentifier { day: 10, part: 2 } => pipe_maze::surface_inside_loop(&puzzle.input_data).to_string(),
+                PuzzleIdentifier { day: 11, part: 1 } => cosmic_expansion::calculate_distances_between_galaxies(&puzzle.input_data).to_string(),
+                PuzzleIdentifier { day: 12, part: 1 } => hot_springs::sum_possible_arrangements(&puzzle.input_data).to_string(),
                 _ => "Sorry, there is no solution for this puzzle yet ;(".to_string()
             };
             println!("{program_result}");
