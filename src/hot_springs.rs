@@ -130,7 +130,7 @@ pub fn sum_possible_arrangements(file: &str, unfold_records: bool) -> usize {
         //}
         println!("Arrangements {}", arrangements.len());
         let possibilities = find_all(&record.0, &Vec::new(), &arrangements);
-        println!("Possibilities {}", possibilities.len());
+        println!("Possibilities {}", possibilities);
         //for (n, p) in possibilities.iter().enumerate() {
         //    for arr in p.iter() {
         //        let (start, end) = arr;
@@ -153,7 +153,7 @@ pub fn sum_possible_arrangements(file: &str, unfold_records: bool) -> usize {
         //        println!("{}: {head}{placement}{tail}", n + 1);
         //    }
         //}
-        sum += possibilities.len();
+        sum += possibilities;
     }
 
     sum
@@ -249,21 +249,25 @@ fn find_all(
     springs: &Vec<SpringState>,
     head: &Vec<(usize, usize)>,
     tail_possibilities: &Vec<Vec<(usize, usize)>>,
-) -> Vec<Vec<(usize, usize)>> {
+) -> usize {
     if tail_possibilities.is_empty() {
+        //let springs_slice = match head.last() {
+        //    Some(last) => &springs[0..last.1],
+        //    None => &springs[..]
+        //};
         let is_valid_combination = springs.iter().enumerate().all(|(i, spring)| match spring {
             SpringState::Broken => head.iter().any(|(start, end)| i >= *start && i < *end),
             _ => true,
         });
         return if is_valid_combination {
-            vec![head.clone()]
+           1 
         } else {
-            vec![]
+          0 
         };
     }
 
     match tail_possibilities.first() {
-        None => vec![head.clone()],
+        None => 1,
         Some(next_level_possibilities) => {
             let valid_possibilities = match head.last() {
                 None => next_level_possibilities
@@ -275,13 +279,13 @@ fn find_all(
                     .collect::<Vec<&(usize, usize)>>(),
             };
 
-            let mut all_possibilities: Vec<Vec<(usize, usize)>> = Vec::new();
+            let mut all_possibilities: usize = 0; 
             for possibility in valid_possibilities.into_iter() {
                 let mut new_head = head.clone();
                 new_head.push(*possibility);
                 let following_levels = &tail_possibilities[1..].to_vec();
                 let mut following_possibilities = find_all(springs, &new_head, following_levels);
-                all_possibilities.append(&mut following_possibilities);
+                all_possibilities += following_possibilities
             }
             all_possibilities
         }
