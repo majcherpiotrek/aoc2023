@@ -47,7 +47,8 @@ fn main() {
                 PuzzleIdentifier { day: 10, part: 1 } => pipe_maze::steps_to_farthest_loop_end(&puzzle.input_data).to_string(),
                 PuzzleIdentifier { day: 10, part: 2 } => pipe_maze::surface_inside_loop(&puzzle.input_data).to_string(),
                 PuzzleIdentifier { day: 11, part: 1 } => cosmic_expansion::calculate_distances_between_galaxies(&puzzle.input_data).to_string(),
-                PuzzleIdentifier { day: 12, part: 1 } => hot_springs::sum_possible_arrangements(&puzzle.input_data).to_string(),
+                PuzzleIdentifier { day: 12, part: 1 } => hot_springs::sum_possible_arrangements(&puzzle.input_data, false).to_string(),
+                PuzzleIdentifier { day: 12, part: 2 } => hot_springs::sum_possible_arrangements(&puzzle.input_data, true).to_string(),
                 _ => "Sorry, there is no solution for this puzzle yet ;(".to_string()
             };
             println!("{program_result}");

@@ -1,12 +1,21 @@
 struct Row(Vec<SpringState>, Vec<usize>);
 
 impl Row {
-    pub fn parse(line: &str) -> Row {
+    pub fn parse(line: &str, unfold_records: bool) -> Row {
         let mut line_split = line.split_whitespace();
         let springs = line_split
             .next()
             .map(|s| {
-                s.chars()
+                let record = if unfold_records {
+                    (0..5)
+                        .map(|_| s.to_string())
+                        .collect::<Vec<String>>()
+                        .join("?")
+                } else {
+                    s.to_string()
+                };
+                record
+                    .chars()
                     .map(|c| SpringState::from_char(&c))
                     .collect::<Vec<SpringState>>()
             })
@@ -15,7 +24,16 @@ impl Row {
         let groups = line_split
             .next()
             .map(|s| {
-                s.split(",")
+                let groups = if unfold_records {
+                    (0..5)
+                        .map(|_| s.to_string())
+                        .collect::<Vec<String>>()
+                        .join(",")
+                } else {
+                    s.to_string()
+                };
+                groups
+                    .split(",")
                     .map(|n| n.parse::<usize>().expect("Invalid input"))
                     .collect::<Vec<usize>>()
             })
@@ -57,82 +75,84 @@ impl std::fmt::Display for SpringState {
     }
 }
 
-pub fn sum_possible_arrangements(file: &str) -> usize {
-    let springs_records = parse_input(file);
+pub fn sum_possible_arrangements(file: &str, unfold_records: bool) -> usize {
+    let springs_records = parse_input(file, unfold_records);
     let mut sum: usize = 0;
-    for (i, record) in springs_records.iter().enumerate() {
-        println!(
-            "\n\nRecord {i}, broken blocks: {}\n\n",
-            record
-                .1
-                .iter()
-                .map(|n| n.to_string())
-                .collect::<Vec<String>>()
-                .join(",")
-        );
-        println!("Unfiltered");
-        println!(
-            "{}",
-            record
-                .0
-                .iter()
-                .map(|s| s.to_string())
-                .collect::<Vec<String>>()
-                .join("")
-        );
+    for record in springs_records.iter() {
+        //println!(
+        //    "\n\nRecord {i}, broken blocks: {}\n\n",
+        //    record
+        //        .1
+        //        .iter()
+        //        .map(|n| n.to_string())
+        //        .collect::<Vec<String>>()
+        //        .join(",")
+        //);
+        //println!("Unfiltered");
+        //println!(
+        //    "{}",
+        //    record
+        //        .0
+        //        .iter()
+        //        .map(|s| s.to_string())
+        //        .collect::<Vec<String>>()
+        //        .join("")
+        //);
 
         let arrangements = find_possibilities_per_block(record);
 
-        for (block_num, arrangements_for_block) in arrangements.iter().enumerate() {
-            println!(
-                "Block num: {block_num} - size {}",
-                record.1.get(block_num).expect("This value must be there")
-            );
-            for arr in arrangements_for_block.iter() {
-                let (start, end) = arr;
-                let springs = &record.0;
-                let head = &springs[0..*start]
-                    .iter()
-                    .map(|s| s.to_string())
-                    .collect::<Vec<String>>()
-                    .join("");
-                let placement = (0..(end - start))
-                    .map(|_| "X")
-                    .collect::<Vec<&str>>()
-                    .join("");
-                let tail = &springs[*end..]
-                    .iter()
-                    .map(|s| s.to_string())
-                    .collect::<Vec<String>>()
-                    .join("");
+        //for (block_num, arrangements_for_block) in arrangements.iter().enumerate() {
+        //   // println!(
+        //   //     "Block num: {block_num} - size {}",
+        //   //     record.1.get(block_num).expect("This value must be there")
+        //   // );
+        //    for arr in arrangements_for_block.iter() {
+        //        let (start, end) = arr;
+        //        let springs = &record.0;
+        //        let head = &springs[0..*start]
+        //            .iter()
+        //            .map(|s| s.to_string())
+        //            .collect::<Vec<String>>()
+        //            .join("");
+        //        let placement = (0..(end - start))
+        //            .map(|_| "X")
+        //            .collect::<Vec<&str>>()
+        //            .join("");
+        //        let tail = &springs[*end..]
+        //            .iter()
+        //            .map(|s| s.to_string())
+        //            .collect::<Vec<String>>()
+        //            .join("");
 
-                println!("{head}{placement}{tail}");
-            }
-            println!("\n");
-        }
+        //        println!("{head}{placement}{tail}");
+        //    }
+        //    println!("\n");
+        //}
+        println!("Arrangements {}", arrangements.len());
         let possibilities = find_all(&record.0, &Vec::new(), &arrangements);
-        for (n, p) in possibilities.iter().enumerate() {
-            for arr in p.iter() {
-                let (start, end) = arr;
-                let springs = &record.0;
-                let head = &springs[0..*start]
-                    .iter()
-                    .map(|s| s.to_string())
-                    .collect::<Vec<String>>()
-                    .join("");
-                let placement = (0..(end - start))
-                    .map(|_| "X")
-                    .collect::<Vec<&str>>()
-                    .join("");
-                let tail = &springs[*end..]
-                    .iter()
-                    .map(|s| s.to_string())
-                    .collect::<Vec<String>>()
-                    .join("");
+        println!("Possibilities {}", possibilities.len());
+        //for (n, p) in possibilities.iter().enumerate() {
+        //    for arr in p.iter() {
+        //        let (start, end) = arr;
+        //        let springs = &record.0;
+        //        let head = &springs[0..*start]
+        //            .iter()
+        //            .map(|s| s.to_string())
+        //            .collect::<Vec<String>>()
+        //            .join("");
+        //        let placement = (0..(end - start))
+        //            .map(|_| "X")
+        //            .collect::<Vec<&str>>()
+        //            .join("");
+        //        let tail = &springs[*end..]
+        //            .iter()
+        //            .map(|s| s.to_string())
+        //            .collect::<Vec<String>>()
+        //            .join("");
 
-                println!("{}: {head}{placement}{tail}", n + 1);
-            }
-        }
+        //        println!("{}: {head}{placement}{tail}", n + 1);
+        //    }
+        //}
         sum += possibilities.len();
     }
 
@@ -149,10 +169,14 @@ fn find_possibilities_per_block(row: &Row) -> Vec<Vec<(usize, usize)>> {
             //println!("Block {i}, size {size}");
             let mut possible_positions: Vec<(usize, usize)> = Vec::new();
 
-            let mut lowest_possible_slice_start = i + &broken_blocks_sizes[0..i]
+            let number_of_preceeding_broken_blocks = &broken_blocks_sizes[0..i]
                 .iter()
-                .fold(0, |acc, size| acc + size);
-            //println!("Lowest possible start: {lowest_possible_slice_start}");
+                .fold(0, |acc, elem| acc + elem);
+            let number_of_succeeding_broken_blocks = &broken_blocks_sizes[(i + 1)..]
+                .iter()
+                .fold(0, |acc, elem| acc + elem);
+
+            let mut lowest_possible_slice_start = i + number_of_preceeding_broken_blocks;
 
             loop {
                 if lowest_possible_slice_start > springs.len() - size {
@@ -174,11 +198,22 @@ fn find_possibilities_per_block(row: &Row) -> Vec<Vec<(usize, usize)>> {
                     }
                 }
 
-                let prev_spring = springs
-                    .get(lowest_possible_slice_start - 1)
-                    .expect("This should always be within bounds");
+                let actual_preceeding_broken_springs = &springs[0..lowest_possible_slice_start]
+                    .iter()
+                    .fold(0 as usize, |acc, elem| {
+                        if *elem == SpringState::Broken {
+                            acc + 1
+                        } else {
+                            acc
+                        }
+                    });
 
-                let is_preceeded_by_broken_spring = *prev_spring == SpringState::Broken;
+                let is_preceeded_by_broken_spring = *actual_preceeding_broken_springs
+                    > *number_of_preceeding_broken_blocks
+                    || *springs
+                        .get(lowest_possible_slice_start - 1)
+                        .expect("This should always be within bounds")
+                        == SpringState::Broken;
 
                 if is_preceeded_by_broken_spring || is_succeeded_by_broken_spring {
                     lowest_possible_slice_start += 1;
@@ -188,10 +223,7 @@ fn find_possibilities_per_block(row: &Row) -> Vec<Vec<(usize, usize)>> {
                 break;
             }
 
-            let highest_possible_end = springs.len()
-                - &broken_blocks_sizes[(i + 1)..]
-                    .iter()
-                    .fold(0, |acc, size| acc + size);
+            let highest_possible_end = springs.len() - number_of_succeeding_broken_blocks;
 
             for start in lowest_possible_slice_start..=(highest_possible_end - size) {
                 let end: usize = start + size;
@@ -256,9 +288,9 @@ fn find_all(
     }
 }
 
-fn parse_input(file: &str) -> Vec<Row> {
+fn parse_input(file: &str, unfold_records: bool) -> Vec<Row> {
     file.split("\n")
         .filter(|line| !line.is_empty())
-        .map(Row::parse)
+        .map(|line| Row::parse(line, unfold_records))
         .collect::<Vec<Row>>()
 }
