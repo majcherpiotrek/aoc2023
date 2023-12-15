@@ -15,6 +15,7 @@ mod pipe_maze;
 mod cosmic_expansion;
 mod hot_springs;
 mod lens_library;
+mod point_of_incidence;
 
 use crate::puzzle_reader::{PuzzleIdentifier, read_puzzle};
 
@@ -51,6 +52,8 @@ fn main() {
                 PuzzleIdentifier { day: 12, part: 1 } => hot_springs::calculate_arrangements(&puzzle.input_data, false).to_string(),
                 PuzzleIdentifier { day: 12, part: 2 } => hot_springs::calculate_arrangements(&puzzle.input_data, true).to_string(),
                 PuzzleIdentifier { day: 15, part: 1 } => lens_library::calculate_hash_for_sequence(&puzzle.input_data).to_string(),
+                PuzzleIdentifier { day: 15, part: 2 } => lens_library::put_lenses_in_boxes(&puzzle.input_data).to_string(),
+                PuzzleIdentifier { day: 13, part: 1 } => point_of_incidence::count_reflections(&puzzle.input_data).to_string(),
                 _ => "Sorry, there is no solution for this puzzle yet ;(".to_string()
             };
             println!("{program_result}");
