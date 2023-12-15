@@ -33,8 +33,8 @@ pub fn surface_inside_loop(file: &str) -> usize {
 
     let north_limit = max_north.0 + 1;
     let east_limit = max_east.1;
-    let south_limit = max_south.0;
-    let west_limit = max_west.1 + 1;
+    let south_limit = max_south.0 - 1;
+    let west_limit = max_west.1;
 
     println!("north {north_limit}");
     println!("east {east_limit}");
@@ -45,45 +45,80 @@ pub fn surface_inside_loop(file: &str) -> usize {
 
     for row in north_limit..=south_limit {
         println!("\nROW {row}");
-        for start_col in west_limit..=(east_limit - 1) {
+        let mut intersections_in_row: Vec<Position> = Vec::new();
+
+        let mut horizontal_line = false;
+        for start_col in west_limit..=east_limit {
+            let point_to_verify = Position(row, start_col);
+            let element_to_verify = maze.get_element(&point_to_verify).unwrap();
+            if *element_to_verify == MazeElement::Ground {
+                continue;
+            }
+            println!("Verify {:?}, {:?}", point_to_verify, element_to_verify);
+            let is_part_of_the_loop = shortest_loop.contains(&point_to_verify);
+            if is_part_of_the_loop {
+                println!("is in the loop");
+                if element_to_verify.is_corner() && !horizontal_line {
+                    horizontal_line = true;
+                } else if element_to_verify.is_corner() && horizontal_line {
+                    horizontal_line = false;
+                    intersections_in_row.push(point_to_verify);
+                } else if element_to_verify.is_vertical_pipe() {
+                    intersections_in_row.push(point_to_verify);
+                } else if *element_to_verify == MazeElement::StartingPosition {
+                    let preceeding_element = if start_col > 0 {
+                        maze.get_element(&Position(row, start_col - 1))
+                    } else {
+                        None
+                    };
+                    let succeeding_element = maze.get_element(&Position(row, start_col + 1));
+
+                    let is_preceeding_horizontal = preceeding_element
+                        .map(|el| el.is_horizontal_pipe())
+                        .unwrap_or(false);
+
+                    let is_succeeding_horizontal = succeeding_element
+                        .map(|el| el.is_horizontal_pipe())
+                        .unwrap_or(false);
+
+                    let is_corner = (!is_preceeding_horizontal && is_succeeding_horizontal)
+                        || (is_preceeding_horizontal && !is_succeeding_horizontal);
+                    let is_vertical = !is_preceeding_horizontal && !is_succeeding_horizontal;
+
+                    if is_corner && !horizontal_line {
+                        horizontal_line = true;
+                    } else if is_corner && horizontal_line {
+                        horizontal_line = false;
+                        intersections_in_row.push(point_to_verify);
+                    } else if is_vertical {
+                        intersections_in_row.push(point_to_verify);
+                    }
+                }
+            }
+        }
+        println!("Intersections in row {:?}", intersections_in_row);
+        for start_col in (west_limit + 1)..=(east_limit - 1) {
             println!("\nCOL {start_col}");
-            let mut intersections: Vec<Position> = Vec::new();
-            for col in start_col..=east_limit {
-                let point_to_check = Position(row, col);
-                let intersects = shortest_loop.contains(&point_to_check);
-                if intersects {
-                    intersections.push(point_to_check);
-                }
+            let point_to_verify = Position(row, start_col);
+            let element_to_verify = maze.get_element(&point_to_verify).unwrap();
+            if *element_to_verify != MazeElement::Ground {
+                continue;
             }
-            println!("Intersections: {}", intersections.len());
+            let num_of_intersections_before =
+                intersections_in_row
+                    .iter()
+                    .fold(0, |acc, p| if p.1 < start_col { acc + 1 } else { acc });
+            let num_of_intersections_after =
+                intersections_in_row
+                    .iter()
+                    .fold(0, |acc, p| if p.1 > start_col { acc + 1 } else { acc });
 
-            let mut num_of_unique_intersections: usize = 0;
-
-            for (i, intersection) in intersections.iter().enumerate() {
-                if i == 0 {
-                    num_of_unique_intersections += 1;
-                } else {
-                    let previous = intersections.get(i - 1).expect("Unexpected error");
-                    if intersection.1 - previous.1 > 1 {
-                        num_of_unique_intersections += 1;
-                    }
-                }
-            }
-            println!("Unique intersections: {num_of_unique_intersections}");
-
-            if num_of_unique_intersections != 0 && num_of_unique_intersections % 2 != 0 {
-                if num_of_unique_intersections == 1 && intersections.len() > 1 {
-                    continue;
-                }
-                let element = maze
-                    .get_element(&Position(row, start_col))
-                    .expect("No such point in the maze");
-                match element {
-                    MazeElement::Ground => {
-                        points_inside.push((Position(row, start_col), element.clone()));
-                    }
-                    _ => (),
-                }
+            if num_of_intersections_before != 0
+                && num_of_intersections_before % 2 != 0
+                && num_of_intersections_after != 0
+                && num_of_intersections_after % 2 != 0
+            {
+                points_inside.push((point_to_verify, element_to_verify.clone()));
             }
         }
     }
@@ -242,6 +277,36 @@ impl MazeElement {
             },
             'S' => MazeElement::StartingPosition,
             _ => panic!("Unknown maze element"),
+        }
+    }
+
+    pub fn is_corner(&self) -> bool {
+        match self {
+            MazeElement::Pipe { end_a, end_b } => {
+                *end_a == Direction::North && *end_b == Direction::East
+                    || *end_a == Direction::North && *end_b == Direction::West
+                    || *end_a == Direction::South && *end_b == Direction::East
+                    || *end_a == Direction::South && *end_b == Direction::West
+            }
+            _ => false,
+        }
+    }
+
+    pub fn is_horizontal_pipe(&self) -> bool {
+        match self {
+            MazeElement::Pipe { end_a, end_b } => {
+                *end_a == Direction::East && *end_b == Direction::West
+            }
+            _ => false,
+        }
+    }
+
+    pub fn is_vertical_pipe(&self) -> bool {
+        match self {
+            MazeElement::Pipe { end_a, end_b } => {
+                *end_a == Direction::North && *end_b == Direction::South
+            }
+            _ => false,
         }
     }
 
