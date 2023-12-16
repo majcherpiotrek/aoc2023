@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 fn parse_input(file: &str) -> Vec<&str> {
     file.trim().split(",").collect::<Vec<&str>>()
