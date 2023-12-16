@@ -8,16 +8,69 @@ pub fn calculate_energized_tiles(file: &str) -> usize {
 
     let mut cache: HashMap<String, BeamDirection> = HashMap::new();
 
-    follow_beam(&lines, &mut energization_map, (0, 0), BeamDirection::Right, &mut cache);
+    follow_beam(
+        &lines,
+        &mut energization_map,
+        (0, 0),
+        BeamDirection::Right,
+        &mut cache,
+    );
 
     for row in energization_map.iter() {
         println!("{:?}", row);
     }
 
-    
     energization_map.iter().fold(0, |acc, row| {
         acc + row.iter().fold(0, |acc_2, tile| acc_2 + *tile as usize)
     })
+}
+
+pub fn find_best_beam_entry(file: &str) -> usize {
+    let lines = parse_input(file);
+    let width = lines.first().unwrap().len();
+
+    let mut entries_from_above = (0..width)
+        .map(|i| ((0, i), BeamDirection::Down))
+        .collect::<Vec<((usize, usize), BeamDirection)>>();
+    let mut entries_from_left = (0..lines.len())
+        .map(|i| ((i, 0), BeamDirection::Right))
+        .collect::<Vec<((usize, usize), BeamDirection)>>();
+    let mut entries_from_below = (0..width)
+        .map(|i| ((lines.len() - 1, i), BeamDirection::Up))
+        .collect::<Vec<((usize, usize), BeamDirection)>>();
+    let mut entries_from_right = (0..lines.len())
+        .map(|i| ((i, width - 1), BeamDirection::Left))
+        .collect::<Vec<((usize, usize), BeamDirection)>>();
+
+    let mut all_entries_to_verify = Vec::new();
+    all_entries_to_verify.append(&mut entries_from_above);
+    all_entries_to_verify.append(&mut entries_from_left);
+    all_entries_to_verify.append(&mut entries_from_below);
+    all_entries_to_verify.append(&mut entries_from_right);
+
+    let mut max_energized_tiles = 0;
+
+    for entry in all_entries_to_verify.iter() {
+        let (entry_tile, entry_direction) = entry;
+        let mut energization_map = vec![vec![0 as u8; width]; lines.len()];
+        let mut cache: HashMap<String, BeamDirection> = HashMap::new();
+        follow_beam(
+            &lines,
+            &mut energization_map,
+            *entry_tile,
+            *entry_direction,
+            &mut cache,
+        );
+
+        let total_energized_tiles = energization_map.iter().fold(0, |acc, row| {
+            acc + row.iter().fold(0, |acc_2, tile| acc_2 + *tile as usize)
+        });
+        if total_energized_tiles > max_energized_tiles {
+            max_energized_tiles = total_energized_tiles;
+        }
+    }
+
+    max_energized_tiles
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

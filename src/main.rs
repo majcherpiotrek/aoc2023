@@ -56,6 +56,7 @@ fn main() {
                 PuzzleIdentifier { day: 15, part: 2 } => lens_library::put_lenses_in_boxes(&puzzle.input_data).to_string(),
                 PuzzleIdentifier { day: 13, part: 1 } => point_of_incidence::count_reflections(&puzzle.input_data).to_string(),
                 PuzzleIdentifier { day: 16, part: 1 } => floor_will_be_lava::calculate_energized_tiles(&puzzle.input_data).to_string(),
+                PuzzleIdentifier { day: 16, part: 2 } => floor_will_be_lava::find_best_beam_entry(&puzzle.input_data).to_string(),
                 _ => "Sorry, there is no solution for this puzzle yet ;(".to_string()
             };
             println!("{program_result}");
