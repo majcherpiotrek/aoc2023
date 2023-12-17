@@ -17,6 +17,7 @@ mod hot_springs;
 mod lens_library;
 mod point_of_incidence;
 mod floor_will_be_lava;
+mod clumsy_crucible;
 
 use crate::puzzle_reader::{PuzzleIdentifier, read_puzzle};
 
@@ -57,6 +58,7 @@ fn main() {
                 PuzzleIdentifier { day: 13, part: 1 } => point_of_incidence::count_reflections(&puzzle.input_data).to_string(),
                 PuzzleIdentifier { day: 16, part: 1 } => floor_will_be_lava::calculate_energized_tiles(&puzzle.input_data).to_string(),
                 PuzzleIdentifier { day: 16, part: 2 } => floor_will_be_lava::find_best_beam_entry(&puzzle.input_data).to_string(),
+                PuzzleIdentifier { day: 17, part: 1 } => clumsy_crucible::find_shortest_path(&puzzle.input_data).map(|n| n.to_string()).unwrap_or("None".to_string()),
                 _ => "Sorry, there is no solution for this puzzle yet ;(".to_string()
             };
             println!("{program_result}");
