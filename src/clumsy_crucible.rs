@@ -1,8 +1,8 @@
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::{BinaryHeap, HashMap, HashSet};
 
 type NodeAddress = (usize, usize);
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct Node {
     coordinates: NodeAddress,
     heat_loss_factor: u8,
@@ -10,10 +10,12 @@ struct Node {
     previous_node: Option<NodeAddress>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct State {
     node_address: NodeAddress,
     accumulated_heat_loss: usize,
+    direction: Direction,
+    moves_in_direction: u8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -58,180 +60,322 @@ pub fn find_shortest_path(file: &str) -> Option<usize> {
     heap.push(State {
         node_address: start_node_address,
         accumulated_heat_loss: 0,
+        direction: Direction::Up,
+        moves_in_direction: 0,
     });
 
-    let mut total_heat_loss = 0;
-    while let Some(State {
-        node_address,
-        accumulated_heat_loss,
-    }) = heap.pop()
-    {
-        println!("State: {:?}, {:?}", node_address, accumulated_heat_loss);
+    let mut results: Vec<State> = Vec::new();
+    let mut seen: HashSet<String> = HashSet::new();
 
-        //for entry in nodes_map.values() {
-        //    println!("{:?} ->  {:?}, prev {:?}", entry.coordinates, entry.shortest_distance, entry.previous_node)
-        //}
-        if node_address == end_node_address {
-            total_heat_loss = accumulated_heat_loss;
-            break;
-        }
+    while let Some(current_state) = heap.pop() {
+        //println!("State: {:?}", current_state);
 
-        let node_data = nodes_map.get(&build_key(node_address)).unwrap();
-
-        // If we already found a better path for the node
-        if accumulated_heat_loss > node_data.shortest_distance {
+        if current_state.node_address == end_node_address {
+            results.push(current_state);
             continue;
         }
 
-        let neighbours =
-            get_possible_neighbours(&nodes_map, node_address, &rows_number, &columns_number);
+        let seen_key = build_seen_key(&current_state);
+        if seen.contains(&seen_key) {
+            continue;
+        } else {
+            seen.insert(seen_key);
+        }
 
-        println!("Checking neighbours: {:?}", neighbours);
+        let neighbours = if current_state.node_address == start_node_address {
+            vec![(Direction::Right, (0, 1)), (Direction::Down, (1, 0))]
+        } else {
+            get_possible_neighbours(&current_state, &rows_number, &columns_number)
+        };
+
+        //println!("Checking neighbours: {:?}", neighbours);
         for neighbour in neighbours.iter() {
-            let neighbour_data = nodes_map.get_mut(&build_key(*neighbour)).unwrap();
-            println!("Current neighbour data: {:?}", neighbour_data);
+            let neighbour_data = nodes_map.get_mut(&build_key(neighbour.1)).unwrap();
+            //println!("Current neighbour data: {:?}", neighbour_data);
+
             let next = State {
                 node_address: neighbour_data.coordinates,
-                accumulated_heat_loss: accumulated_heat_loss
+                accumulated_heat_loss: current_state.accumulated_heat_loss
                     + neighbour_data.heat_loss_factor as usize,
+                direction: neighbour.0,
+                moves_in_direction: if neighbour.0 == current_state.direction {
+                    current_state.moves_in_direction + 1
+                } else {
+                    1
+                },
             };
 
-            println!("Next: {:?}", next);
+            //println!("Next: {:?}", next);
+            let neighbour_seen_key = build_seen_key(&next);
+
+            if seen.contains(&neighbour_seen_key) {
+                continue;
+            } else {
+                heap.push(next.clone());
+            }
 
             if next.accumulated_heat_loss < neighbour_data.shortest_distance {
-                println!("Updating path");
-                heap.push(next);
+                //println!("Updating path");
                 neighbour_data.shortest_distance = next.accumulated_heat_loss;
-                neighbour_data.previous_node = Some(node_address)
+                neighbour_data.previous_node = Some(current_state.node_address);
             }
-            println!("\n");
+            //println!("\n");
         }
+
+        //println!("Heap at the end: {:?}", heap);
+        //println!("\n");
     }
 
-    let mut path: HashMap<String, String> = HashMap::new();
+    //println!("Results {:?}", results);
 
-    let end_node = nodes_map.get(&build_key(end_node_address)).unwrap();
+    nodes_map
+        .get(&build_key(end_node_address))
+        .map(|r| r.shortest_distance)
+}
 
-    let mut current_node: &Node = &end_node;
-    loop {
-        if let Some(prev_node) = current_node
-            .previous_node
-            .and_then(|addr| nodes_map.get(&build_key(addr)))
-        {
-            let direction = arrived_from(&current_node.coordinates, &prev_node.coordinates);
-            path.insert(
-                build_key(prev_node.coordinates),
-                match direction {
-                    Direction::Up => "^".to_string(),
-                    Direction::Right => ">".to_string(),
-                    Direction::Down => "V".to_string(),
-                    Direction::Left => "<".to_string(),
-                },
-            );
-            current_node = prev_node;
+pub fn find_shortest_path2(file: &str) -> Option<usize> {
+    let (nodes, mut nodes_map) = parse_input(file);
+
+    let start_node_address: NodeAddress = (0, 0);
+    let rows_number = nodes.len();
+    let columns_number = nodes.first().unwrap().len();
+    let end_node_address: NodeAddress = (rows_number - 1, columns_number - 1);
+
+    let mut heap = BinaryHeap::new();
+
+    heap.push(State {
+        node_address: start_node_address,
+        accumulated_heat_loss: 0,
+        direction: Direction::Up,
+        moves_in_direction: 0,
+    });
+
+    let mut results: Vec<State> = Vec::new();
+    let mut seen: HashSet<String> = HashSet::new();
+
+    while let Some(current_state) = heap.pop() {
+        //println!("State: {:?}", current_state);
+
+        if current_state.node_address == end_node_address {
+            results.push(current_state);
+            continue;
+        }
+
+        let seen_key = build_seen_key(&current_state);
+        if seen.contains(&seen_key) {
+            continue;
         } else {
-            break;
+            seen.insert(seen_key);
         }
+
+        let neighbours = if current_state.node_address == start_node_address {
+            vec![(Direction::Right, (0, 1)), (Direction::Down, (1, 0))]
+        } else {
+            get_possible_neighbours2(&current_state, &rows_number, &columns_number)
+        };
+
+        //println!("Checking neighbours: {:?}", neighbours);
+        for neighbour in neighbours.iter() {
+            let neighbour_data = nodes_map.get_mut(&build_key(neighbour.1)).unwrap();
+            //println!("Current neighbour data: {:?}", neighbour_data);
+
+            let next = State {
+                node_address: neighbour_data.coordinates,
+                accumulated_heat_loss: current_state.accumulated_heat_loss
+                    + neighbour_data.heat_loss_factor as usize,
+                direction: neighbour.0,
+                moves_in_direction: if neighbour.0 == current_state.direction {
+                    current_state.moves_in_direction + 1
+                } else {
+                    1
+                },
+            };
+
+            //println!("Next: {:?}", next);
+            let neighbour_seen_key = build_seen_key(&next);
+
+            if seen.contains(&neighbour_seen_key) {
+                continue;
+            } else {
+                heap.push(next.clone());
+            }
+
+            if next.accumulated_heat_loss < neighbour_data.shortest_distance {
+                //println!("Updating path");
+                neighbour_data.shortest_distance = next.accumulated_heat_loss;
+                neighbour_data.previous_node = Some(current_state.node_address);
+            }
+            //println!("\n");
+        }
+
+        //println!("Heap at the end: {:?}", heap);
+        //println!("\n");
     }
 
-    let to_draw = nodes
-        .iter()
-        .enumerate()
-        .map(|(i, row)| {
-            row.iter()
-                .enumerate()
-                .map(|(j, elem)| {
-                    if let Some(path_element) = path.get(&build_key((i, j))) {
-                        path_element.clone()
-                    } else {
-                        elem.to_string()
-                    }
-                })
-                .collect::<Vec<String>>()
-        })
-        .collect::<Vec<Vec<String>>>();
+    //println!("Results {:?}", results);
 
-    println!("\n");
-    for row in to_draw.iter() {
-        println!("{}", row.join(""));
-    }
+    nodes_map
+        .get(&build_key(end_node_address))
+        .map(|r| r.shortest_distance)
+}
 
-    Some(total_heat_loss)
+fn build_seen_key(state: &State) -> String {
+    format!(
+        "{:?}-{:?}-{}",
+        state.node_address, state.direction, state.moves_in_direction
+    )
 }
 
 fn get_possible_neighbours(
-    nodes_map: &HashMap<String, Node>,
-    node_address: NodeAddress,
+    state: &State,
     rows_number: &usize,
     columns_number: &usize,
-) -> Vec<NodeAddress> {
-    let (row, column) = node_address;
-    let current = nodes_map.get(&build_key(node_address)).unwrap();
-    println!("Current {:?}", current);
-    let prev_1 = current
-        .previous_node
-        .map(|prev| nodes_map.get(&build_key(prev)).unwrap());
-    println!("P1 {:?}", prev_1);
-    let prev_2 = prev_1.and_then(|node| {
-        node.previous_node
-            .map(|prev| nodes_map.get(&build_key(prev)).unwrap())
-    });
-    println!("P2 {:?}", prev_2);
-    let prev_3 = prev_2.and_then(|node| {
-        node.previous_node
-            .map(|prev| nodes_map.get(&build_key(prev)).unwrap())
-    });
-    println!("P3 {:?}", prev_3);
+) -> Vec<(Direction, NodeAddress)> {
+    let (row, column) = state.node_address;
 
-    let forbidden_direction = match (prev_1, prev_2, prev_3) {
-        (Some(p1), Some(p2), Some(p3)) => {
-            let arrived_at_current_from = arrived_from(&current.coordinates, &p1.coordinates);
-            let arrived_at_p1_from = arrived_from(&p1.coordinates, &p2.coordinates);
-            let arrived_at_p2_from = arrived_from(&p2.coordinates, &p3.coordinates);
+    let mut forbidden_directions = Vec::new();
 
-            if arrived_at_current_from == arrived_at_p1_from
-                && arrived_at_p1_from == arrived_at_p2_from
-            {
-                Some(arrived_at_current_from)
+    let opposite_direction = match state.direction {
+        Direction::Left => Direction::Right,
+        Direction::Right => Direction::Left,
+        Direction::Up => Direction::Down,
+        Direction::Down => Direction::Up,
+    };
+
+    forbidden_directions.push(opposite_direction);
+
+    if state.moves_in_direction == 3 {
+        forbidden_directions.push(state.direction);
+    }
+
+    let mut neighbours: Vec<(Direction, NodeAddress)> = Vec::new();
+
+    let is_up_forbidden = forbidden_directions.contains(&Direction::Up);
+    let is_right_forbidden = forbidden_directions.contains(&Direction::Right);
+    let is_down_forbidden = forbidden_directions.contains(&Direction::Down);
+    let is_left_forbidden = forbidden_directions.contains(&Direction::Left);
+
+    if !is_down_forbidden && row + 1 < *rows_number {
+        let neighbour = (row + 1, column);
+        neighbours.push((Direction::Down, neighbour));
+    }
+
+    if !is_up_forbidden && row > 0 {
+        let neighbour = (row - 1, column);
+
+        neighbours.push((Direction::Up, neighbour));
+    }
+
+    if !is_right_forbidden && column + 1 < *columns_number {
+        let neighbour = (row, column + 1);
+        neighbours.push((Direction::Right, neighbour));
+    }
+
+    if !is_left_forbidden && column > 0 {
+        let neighbour = (row, column - 1);
+        neighbours.push((Direction::Left, neighbour));
+    }
+
+    neighbours
+}
+fn get_possible_neighbours2(
+    state: &State,
+    rows_number: &usize,
+    columns_number: &usize,
+) -> Vec<(Direction, NodeAddress)> {
+    let (row, column) = state.node_address;
+
+    if state.moves_in_direction < 4 {
+        let next = move_in_direction(&state.node_address, &state.direction, rows_number, columns_number);
+        
+        return match next {
+           None => vec![],
+            Some(n) => vec![(state.direction, n)]
+        }
+    }
+
+    let mut forbidden_directions = Vec::new();
+
+    let opposite_direction = match state.direction {
+        Direction::Left => Direction::Right,
+        Direction::Right => Direction::Left,
+        Direction::Up => Direction::Down,
+        Direction::Down => Direction::Up,
+    };
+
+    forbidden_directions.push(opposite_direction);
+
+    if state.moves_in_direction >= 10 {
+        forbidden_directions.push(state.direction);
+    }
+
+    let mut neighbours: Vec<(Direction, NodeAddress)> = Vec::new();
+
+    let is_up_forbidden = forbidden_directions.contains(&Direction::Up);
+    let is_right_forbidden = forbidden_directions.contains(&Direction::Right);
+    let is_down_forbidden = forbidden_directions.contains(&Direction::Down);
+    let is_left_forbidden = forbidden_directions.contains(&Direction::Left);
+
+    if !is_down_forbidden && row + 1 < *rows_number {
+        let neighbour = (row + 1, column);
+        neighbours.push((Direction::Down, neighbour));
+    }
+
+    if !is_up_forbidden && row > 0 {
+        let neighbour = (row - 1, column);
+
+        neighbours.push((Direction::Up, neighbour));
+    }
+
+    if !is_right_forbidden && column + 1 < *columns_number {
+        let neighbour = (row, column + 1);
+        neighbours.push((Direction::Right, neighbour));
+    }
+
+    if !is_left_forbidden && column > 0 {
+        let neighbour = (row, column - 1);
+        neighbours.push((Direction::Left, neighbour));
+    }
+
+    neighbours
+}
+
+fn move_in_direction(
+    node_address: &NodeAddress,
+    direction: &Direction,
+    rows_number: &usize,
+    columns_number: &usize,
+) -> Option<(usize, usize)> {
+    match direction {
+        Direction::Up => {
+            if node_address.0 > 0 {
+                Some((node_address.0 - 1, node_address.1))
             } else {
                 None
             }
         }
-        _ => None,
-    };
-
-    let mut neighbours: Vec<NodeAddress> = Vec::new();
-
-    let is_up_forbidden = forbidden_direction
-        .map(|d| d == Direction::Up)
-        .unwrap_or(false);
-    let is_right_forbidden = forbidden_direction
-        .map(|d| d == Direction::Right)
-        .unwrap_or(false);
-    let is_down_forbidden = forbidden_direction
-        .map(|d| d == Direction::Down)
-        .unwrap_or(false);
-    let is_left_forbidden = forbidden_direction
-        .map(|d| d == Direction::Left)
-        .unwrap_or(false);
-
-    if !is_down_forbidden && row + 1 < *rows_number {
-        neighbours.push((row + 1, column));
+        Direction::Right => {
+            if node_address.1 + 1 < *columns_number {
+                Some((node_address.0, node_address.1 + 1))
+            } else {
+                None
+            }
+        }
+        Direction::Down => {
+            if node_address.0 + 1 < *rows_number {
+                Some((node_address.0 + 1, node_address.1))
+            } else {
+                None
+            }
+        }
+        Direction::Left => {
+            if node_address.1 > 0 {
+                Some((node_address.0, node_address.1 - 1))
+            } else {
+                None
+            }
+        }
     }
-
-    if !is_up_forbidden && row > 0 {
-        neighbours.push((row - 1, column));
-    }
-
-    if !is_right_forbidden && column + 1 < *columns_number {
-        neighbours.push((row, column + 1))
-    }
-
-    if !is_left_forbidden && column > 0 {
-        neighbours.push((row, column - 1))
-    }
-
-    neighbours
 }
 
 fn arrived_from(current_node: &NodeAddress, prev_node: &NodeAddress) -> Direction {
