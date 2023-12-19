@@ -18,6 +18,7 @@ mod lens_library;
 mod point_of_incidence;
 mod floor_will_be_lava;
 mod clumsy_crucible;
+mod lavaduct_lagoon;
 
 use crate::puzzle_reader::{PuzzleIdentifier, read_puzzle};
 
@@ -60,6 +61,8 @@ fn main() {
                 PuzzleIdentifier { day: 16, part: 2 } => floor_will_be_lava::find_best_beam_entry(&puzzle.input_data).to_string(),
                 PuzzleIdentifier { day: 17, part: 1 } => clumsy_crucible::find_shortest_path(&puzzle.input_data).map(|n| n.to_string()).unwrap_or("None".to_string()),
                 PuzzleIdentifier { day: 17, part: 2 } => clumsy_crucible::find_shortest_path2(&puzzle.input_data).map(|n| n.to_string()).unwrap_or("None".to_string()),
+                PuzzleIdentifier { day: 18, part: 1 } => lavaduct_lagoon::calculate_lagoon_surface(&puzzle.input_data).to_string(),
+                PuzzleIdentifier { day: 18, part: 2 } => lavaduct_lagoon::calculate_lagoon_surface_part_two(&puzzle.input_data).to_string(),
                 _ => "Sorry, there is no solution for this puzzle yet ;(".to_string()
             };
             println!("{program_result}");
