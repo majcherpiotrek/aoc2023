@@ -19,6 +19,7 @@ mod point_of_incidence;
 mod floor_will_be_lava;
 mod clumsy_crucible;
 mod lavaduct_lagoon;
+mod aplenty;
 
 use crate::puzzle_reader::{PuzzleIdentifier, read_puzzle};
 
@@ -63,6 +64,7 @@ fn main() {
                 PuzzleIdentifier { day: 17, part: 2 } => clumsy_crucible::find_shortest_path2(&puzzle.input_data).map(|n| n.to_string()).unwrap_or("None".to_string()),
                 PuzzleIdentifier { day: 18, part: 1 } => lavaduct_lagoon::calculate_lagoon_surface(&puzzle.input_data).to_string(),
                 PuzzleIdentifier { day: 18, part: 2 } => lavaduct_lagoon::calculate_lagoon_surface_part_two(&puzzle.input_data).to_string(),
+                PuzzleIdentifier { day: 19, part: 1 } => aplenty::sort_parts(&puzzle.input_data).to_string(),
                 _ => "Sorry, there is no solution for this puzzle yet ;(".to_string()
             };
             println!("{program_result}");
